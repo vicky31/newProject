@@ -6,7 +6,7 @@
  * @flow
  */
 
-import React, { Component } from 'react';
+import React, {Component} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -17,115 +17,105 @@ import {
   AsyncStorage,
   Dimensions,
   TextInput,
-  Image
+  Image,
+  FlatList,
 } from 'react-native';
 
-import { ProductDropdown } from './components/ProductDropdown';
-
 import scaling from './config/normalize';
-import { search } from './assets';
+import AppSwitchNavigator from './navigation/AppSwitchNavigator';
 
-const { widthScale, normalize } = scaling;
-
-const HEADING = 'Approved Foods List';
-const placeholder = 'Try searching fat, sauces names ...';
+const {widthScale, normalize} = scaling;
 class App extends Component {
-
   constructor(props) {
     super(props);
     this.state = {
-      data: {}
-    }
+      data: {},
+    };
   }
 
   componentDidMount() {
-    fetch('https://api.jsonbin.io/b/5f2c36626f8e4e3faf2cb42e')
-      .then((response) => {
+    fetch('https://itunes.apple.com/search?term=Michael+jackson')
+      .then(response => {
         if (response.ok) {
           return response.json();
-        }
-        else {
-          throw ('Unable to fetch Data')
+        } else {
+          throw 'Unable to fetch Data';
         }
       })
-      .then((response) => {
-        this.saveDataToAsynStorage(response)
+      .then(response => {
+        this.saveDataToAsynStorage(response);
       })
-      .catch((err) => {
+      .catch(err => {
         alert(err);
         this.getDataFromAsyncStorage();
-      })
+      });
   }
 
-  saveDataToAsynStorage = (response) => {
+  saveDataToAsynStorage = response => {
     try {
-      AsyncStorage.setItem(
-        'data',
-        JSON.stringify(response)
-      );
+      AsyncStorage.setItem('data', JSON.stringify(response));
     } catch (error) {
       alert('Data not saved');
     }
-    this.setState({ data: response, filteredData: response });
-  }
+    this.setState({data: response, filteredData: response});
+  };
 
   getDataFromAsyncStorage = async () => {
     try {
       var response = await AsyncStorage.getItem('data');
       if (response !== null) {
-        this.setState({ data: JSON.parse(response), filteredData: JSON.parse(response) });
+        this.setState({
+          data: JSON.parse(response),
+          filteredData: JSON.parse(response),
+        });
       }
     } catch (error) {
       // Error retrieving data
       alert('Data not saved');
     }
-  }
+  };
 
-  changeState = (index) => {
-    const { filteredData = {} } = this.state;
-    const { categories = [] } = filteredData;
+  changeState = index => {
+    const {filteredData = {}} = this.state;
+    const {categories = []} = filteredData;
     const item = categories[index] || {};
     if (item.expanded) {
       item.expanded = false;
-    }
-    else {
+    } else {
       item.expanded = true;
     }
-    this.setState({ filteredData: filteredData });
-  }
+    this.setState({filteredData: filteredData});
+  };
 
-
-  getItemsFilter = (items, value) => items.filter((item) => item.includes(value));
+  getItemsFilter = (items, value) => items.filter(item => item.includes(value));
 
   getSubCategoriesFilter = (subcategories, value) => {
     let updatedArray = subcategories.map(subCategory => {
-      const {
-        items = [],
-        subCategoryname = '',
-        servingSize
-      } = subCategory;
+      const {items = [], subCategoryname = '', servingSize} = subCategory;
 
       const subcategoriesArr = {
         items: this.getItemsFilter(items, value),
         subCategoryname: subCategoryname,
-        servingSize: servingSize
-      }
-      console.log(subcategoriesArr.items)
+        servingSize: servingSize,
+      };
+      console.log(subcategoriesArr.items);
       if (subcategoriesArr.items && subcategoriesArr.items.length) {
         return subcategoriesArr;
       }
       return false;
-    })
+    });
 
-    return updatedArray.filter((elem) => { return elem })
-  }
+    return updatedArray.filter(elem => {
+      return elem;
+    });
+  };
 
-  changeText = (value) => {
-    const { data = {} } = this.state;
-    const { categories = [] } = data;
+  changeText = value => {
+    const {data = {}} = this.state;
+    const {categories = []} = data;
     const filteredData = {
       categories: categories.map(element => {
-        const { category = {} } = element;
+        const {category = {}} = element;
         const {
           subcategories = [],
           categoryName = '',
@@ -146,67 +136,38 @@ class App extends Component {
             protip,
             quote,
             servingSize,
-            subcategories: this.getSubCategoriesFilter(subcategories, value)
+            subcategories: this.getSubCategoriesFilter(subcategories, value),
           },
-          expanded: true
-        }
-      })
-    }
-    this.setState({ searchText: value, filteredData: filteredData })
-  }
+          expanded: true,
+        };
+      }),
+    };
+    this.setState({searchText: value, filteredData: filteredData});
+  };
 
   render() {
-    const { data = {}, searchText = '', filteredData = {} } = this.state;
-    const { categories = {} } = filteredData;
+    const {data = {}, searchText = '', filteredData = {}} = this.state;
+    const {categories = {}} = filteredData;
     return (
       <>
-        <StatusBar barStyle="dark-content" />
-        <SafeAreaView>
-          <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
-            style={styles.scrollView}
-          >
-            <View>
-              <View style={{ marginHorizontal: widthScale(12), marginTop: 40 }}>
-                <Text style={{ fontSize: normalize(25), }}>{HEADING}</Text>
-              </View>
-
-              <View style={styles.input}>
-                <Image style={{ width: 20, height: 20, marginRight: 10 }} source={search} />
-
-                <TextInput
-                  placeholder={placeholder}
-                  onChangeText={this.changeText}
-                  value={searchText}
-                />
-
-              </View>
-              {categories && categories.length ?
-                <View>
-                  {categories.map((item, index) =>
-                    <ProductDropdown
-                      product={item}
-                      index={index}
-                      changeState={this.changeState}
-                    />
-                  )}
-                </View>
-                : null
-              }
-
-            </View>
-          </ScrollView>
-        </SafeAreaView>
+        {/* <StatusBar barStyle="dark-content" /> */}
+        {/* <SafeAreaView>
+          <FlatList />
+        </SafeAreaView> */}
+        <View style={styles.container}>
+          <AppSwitchNavigator />
+        </View>
       </>
     );
-  };
+  }
 }
 
 const styles = StyleSheet.create({
   scrollView: {
+    flex: 1,
     width: '100%',
     backgroundColor: '#EDECF3',
-    height: Dimensions.get('window').height
+    height: Dimensions.get('window').height,
   },
   input: {
     flex: 1,
@@ -215,11 +176,13 @@ const styles = StyleSheet.create({
     marginBottom: widthScale(10),
     marginTop: widthScale(25),
     borderRadius: 5,
-    flexDirection: "row",
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10
-  }
+    paddingHorizontal: 10,
+  },
+  container: {
+    flex: 1,
+  },
 });
 
 export default App;
-
